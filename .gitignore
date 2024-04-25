@@ -1,0 +1,14 @@
+# Standard TeX/latexmk temporary files
+
+*.aux
+*.bbl
+*.fls
+*.fdb_latexmk
+*.log
+*.blg
+
+# Binary outputs and vim swap files
+
+*.pdf
+.*.sw*
+
