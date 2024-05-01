@@ -1,14 +1,20 @@
+# Classifier
+
+classifier/.*
+
+# Extra data
+
+data/
+
 # Standard TeX/latexmk temporary files
 
-*.aux
-*.bbl
-*.fls
-*.fdb_latexmk
-*.log
-*.blg
+report/*.aux
+report/*.bbl
+report/*.fls
+report/*.fdb_latexmk
+report/*.log
+report/*.blg
 
-# Binary outputs and vim swap files
-
-*.pdf
-.*.sw*
+report/*.pdf
+report/.*.sw*
 
