@@ -1,10 +1,7 @@
 # Classifier
 
 classifier/.*
-
-# Extra data
-
-data/
+classifier/data
 
 # Standard TeX/latexmk temporary files
 
