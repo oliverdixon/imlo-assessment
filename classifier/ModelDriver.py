@@ -11,8 +11,7 @@ class _ModelDriver:
     """
     Drives a PyTorch module/model by supporting a training and testing framework
     """
-    _BATCH_SIZE: Final[int] = 4
-    _BATCH_REPORT_RATE = 100
+    _BATCH_SIZE: Final[int] = 32
     _SAVE_PATH = "data/flowers_net.pth"
 
     _DATASET_TEMPLATES: Final[dict[str, transforms.Compose]] = {
@@ -20,6 +19,7 @@ class _ModelDriver:
             transforms.RandomRotation(30),
             transforms.RandomResizedCrop(224),
             transforms.RandomHorizontalFlip(),
+            transforms.RandomVerticalFlip(),
             transforms.ToTensor(),
 
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
@@ -53,28 +53,6 @@ class _ModelDriver:
         print(f"\tEpoch {epoch_idx} / {epoch_count - 1}")
 
     @staticmethod
-    def _report_epoch_batch_set_performance(batch_idx: int, cumulative_loss: float) -> None:
-        """
-        Reports the training performance over a set of batches
-
-        :param batch_idx: The index of the first batch appearing in the set
-        :param cumulative_loss: The cumulative loss over the batch-set
-        """
-        print(f"\t\tBatches {(batch_idx - _ModelDriver._BATCH_REPORT_RATE + 1):03}--{batch_idx:03}: "
-              f"Avg. loss: {cumulative_loss / _ModelDriver._BATCH_REPORT_RATE}")
-
-    @staticmethod
-    def _report_epoch_summary(training_accuracy: float, validation_accuracy: float) -> None:
-        """
-        Reports the post-training epoch performance summary
-
-        :param training_accuracy: The percentage accuracy of the training tests, over the entire epoch
-        :param validation_accuracy: The percentage accuracy of the validation tests
-        """
-        print(f"\t\tTraining data accuracy: {training_accuracy:.2f} %\n"
-              f"\t\tValidation data accuracy: {validation_accuracy:.2f} %")
-
-    @staticmethod
     def _download_data_split(split: str) -> DataLoader:
         """
         Downloads a particular split of the data and configures a PyTorch DataLoader with the fixed batch size.
@@ -93,6 +71,36 @@ class _ModelDriver:
             shuffle=True,
             generator=torch.Generator(torch.get_default_device())
         )
+
+    @staticmethod
+    def _report_epoch_summary(training_accuracy: float, validation_accuracy: float, epoch_loss: float,
+                              learning_rates: tuple[float, float]) -> None:
+        """
+        Reports the post-training epoch performance summary
+
+        :param training_accuracy: The percentage accuracy of the training tests, over the entire epoch
+        :param validation_accuracy: The percentage accuracy of the validation tests
+        :param epoch_loss: The total loss values accumulated during the epoch
+        :param learning_rates: The closing LR of the current epoch followed by the closing LR of the previous epoch
+        """
+        print(f"\t\tTraining data accumulated accuracy: {training_accuracy:.2f} %\n"
+              f"\t\tValidation data accuracy: {validation_accuracy:.2f} %\n"
+              f"\t\tClosing learning rate: {learning_rates[0]}"
+              f"{' (scheduled)' if learning_rates[0] != learning_rates[1] else ''}\n"
+              f"\t\tAccumulated loss: {epoch_loss}")
+
+    @staticmethod
+    def _count_correct_predictions(probabilities: torch.Tensor, truths: torch.Tensor) -> int:
+        """
+        Given a tensor describing the category-wise probabilities over each input image in a batch, take the category
+        reflecting the greatest confidence and count the number of correct model predictions.
+
+        :param probabilities: Category-wise probabilities over each input image in a batch
+        :param truths: Correct labels for each image in the batch
+        :return: The number of correct predictions, based on the maximal probabilities
+        """
+        guesses = torch.max(probabilities, 1)[1]  # Collapse probabilities into a image-wise maximal labelling tensor
+        return (guesses == truths).sum().item()
 
     def _evaluate_batch(self, batch_data: list[torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
         """
@@ -120,27 +128,28 @@ class _ModelDriver:
             data: list[torch.Tensor]
             for data in test_data:
                 outputs, labels = self._evaluate_batch(data)
-                predicted: torch.Tensor = torch.max(outputs.data, 1)[1]
+                correct += self._count_correct_predictions(outputs, labels)
                 total += labels.size(0)
-                correct += (predicted == labels).sum().item()
 
         return correct / total * 100
 
-    def train_model(self, epochs: int) -> None:
+    def train_model(self, epoch_count: int) -> None:
         """
         Trains the driven model on the driver instance's training data for the specified number of epochs, reporting the
         progress as the training proceeds
 
-        :param epochs: The number of epochs for which the model should be trained
+        :param epoch_count: The number of epochs for which the model should be trained
         """
         print("Training...")
+        last_lr: float
 
-        for epoch_idx in range(epochs):
+        for epoch_idx in range(epoch_count):
             correct = 0
             total = 0
+            epoch_loss = 0.0
 
             self._model.train()
-            self._report_epoch(epoch_idx, epochs)
+            self._report_epoch(epoch_idx, epoch_count)
 
             data: list[torch.Tensor]
             for batch_idx, data in enumerate(self._training_data):
@@ -151,16 +160,18 @@ class _ModelDriver:
                 loss.backward()
                 self._optimiser.step()
 
-                # TODO: wrap tensor-element-counting into a method
-                _, predicted = torch.max(outputs, -1)
-                correct += (predicted == labels).sum().item()
-                total += predicted.size(0)
+                total += labels.size(0)
+                correct += self._count_correct_predictions(outputs, labels)
+                epoch_loss += loss.item()
 
-            self._report_epoch_summary(correct / total * 100, self._validate_on_data(self._validation_data))
+            last_lr = self._scheduler.get_last_lr()[0]
+            self._scheduler.step(epoch_loss)
+            self._report_epoch_summary(correct / total * 100, self._validate_on_data(self._validation_data), epoch_loss,
+                                       (self._scheduler.get_last_lr()[0], last_lr))
 
         self._trained = True
         torch.save(self._model.state_dict(), _ModelDriver._SAVE_PATH)
-        print(f"Finished training over {epochs} epochs.")
+        print(f"Finished training over {epoch_count} epochs: see '{_ModelDriver._SAVE_PATH}'.")
 
     def evaluate_model(self) -> None:
         """
@@ -189,9 +200,11 @@ class _ModelDriver:
         self._test_data = self._download_data_split("test")
         self._validation_data = self._download_data_split("val")
 
-        self._optimiser = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
-        # self._scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self._optimiser) # TODO
         self._loss = torch.nn.CrossEntropyLoss()
+
+        # The optimiser uses a very large initial learning rate and allows the scheduler to correct it over the epochs.
+        self._optimiser = torch.optim.SGD(self._model.parameters(), lr=0.001, momentum=0.9)
+        self._scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self._optimiser, factor=0.2, patience=2)
 
 
 def identify_optimal_device() -> str:
@@ -227,5 +240,5 @@ if __name__ == "__main__":
     torch.set_default_device(identify_optimal_device())
     driver = _ModelDriver(FlowersModel())
 
-    driver.train_model(10)
+    driver.train_model(100)
     driver.evaluate_model()
