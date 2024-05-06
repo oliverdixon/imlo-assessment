@@ -2,6 +2,7 @@
 
 classifier/.*
 classifier/data
+!classifier/.run
 
 # Standard TeX/latexmk temporary files
 
