@@ -1,25 +1,57 @@
+% OWD 2024: IMLO assignment report
+%
 \documentclass[journal]{IEEEtran}
 \usepackage[en-GB]{datetime2}
+\usepackage{xcolor}
+\usepackage[
+    colorlinks,
+    linkcolor={red!50!black},
+    citecolor={blue!50!black},
+    urlcolor={blue!80!black}
+]{hyperref}
 
 \newcommand\dotsep{\enspace\textperiodcentered\enspace}
+\newcommand\networkperformance{43}
 
-\title{\emph{IMLO} Image-Classification Report}
-\author{Y3898772}
-\IEEEpubid{Semester 2, 2023/24\dotsep%
-    Department of Computer Science, University of York\dotsep%
-    Document compiled on~\today}
+\title{Classification of the \emph{Flowers-102} Dataset with Convolutional Deep
+    Neural Networks}
+\author{Examination Candidate \#Y3898772%
+    \thanks{Manuscript prepared with \LaTeX\ and \texttt{IEEEtran} on \today.}
+    \thanks{Submitted in partial fulfilment of the requirements of the 
+        \href{https://www.york.ac.uk/students/studying/manage/programmes/%
+        module-catalogue/module/COM00026I/2023-24}{\emph{Intelligent Systems:
+        Machine Learning and Optimisation}} module assignment at the University
+        of York in the 2023/24 academic year.}%
+}
 
 \begin{document}
 \maketitle
 \begin{abstract}
-    \cite{IEEEexample:articlelargepages}
+    The classification of data into discrete categories is an ancient problem,
+    recently made accessible on extremely large datasets due to substantial
+    advances in hardware capability; one such advancement is the introduction of
+    graphics processing units (GPUs) in machine learning applications,
+    particularly for the training and evaluation of deep neural networks (DNNs).
+    This report defines and evaluates such a DNN for the classification of the
+    102-category \emph{Flowers} dataset%
+    \footnote{\url{https://www.robots.ox.ac.uk/~vgg/data/flowers/102/}} from the
+    Visual Geometry Group at the University of Oxford.
+
+    For this purpose, a convolutional deep neural network (CDNN) was
+    constructed, using topical understandings of Batch Normalisation (BN)
+    techniques for regularisation. A fair 102-sided die would classify an
+    arbitrarily chosen image in $\mathbf{0.98}$\% of instances, whereas the
+    constructed CDNN achieves $\mathbf{\networkperformance}$\% accuracy on the
+    test data split.
 \end{abstract}
 \section{Introduction}
 \section{Method}
 \section{Network Architecture}
 \section{Results and Evaluation}
 \section{Conclusion and Further Work}
+
+\nocite{*} % TODO remove
 \bibliographystyle{IEEEtran}
-\bibliography{IEEEabrv,IEEEexample}
+\bibliography{bibliography}
 \end{document}
 
