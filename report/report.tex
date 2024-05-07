@@ -13,8 +13,8 @@
 \newcommand\dotsep{\enspace\textperiodcentered\enspace}
 \newcommand\networkperformance{43}
 
-\title{Classification of the \emph{Flowers-102} Dataset with Convolutional Deep
-    Neural Networks}
+\title{Classification of the 102-Category \emph{Flowers} Dataset with
+    Convolutional Deep Neural Networks}
 \author{Examination Candidate \#Y3898772%
     \thanks{Manuscript prepared with \LaTeX\ and \texttt{IEEEtran} on \today.}
     \thanks{Submitted in partial fulfilment of the requirements of the 
@@ -38,19 +38,52 @@
     Visual Geometry Group at the University of Oxford.
 
     For this purpose, a convolutional deep neural network (CDNN) was
-    constructed, using topical understandings of Batch Normalisation (BN)
+    constructed, using topical understandings of batch normalisation (BN)
     techniques for regularisation. A fair 102-sided die would classify an
-    arbitrarily chosen image in $\mathbf{0.98}$\% of instances, whereas the
-    constructed CDNN achieves $\mathbf{\networkperformance}$\% accuracy on the
-    test data split.
+    arbitrarily chosen \emph{Flowers} image in $\mathbf{0.98}$\% of instances,
+    whereas the constructed CDNN achieves $\mathbf{\networkperformance}$\%
+    accuracy on the test data split.
 \end{abstract}
+\begin{IEEEkeywords}
+    Image classification, computer vision, convolutional networks, deep neural
+    networks
+\end{IEEEkeywords}
 \section{Introduction}
+\IEEEPARstart{T}{raditional} classification-based computer vision problems are
+concerned with the training of DNNs to categorise images within a fixed set of
+`labels'. Often, this involves recognising images from a wide range of highly
+disjointed categories, and significant work and experimentation has been
+conducted in this area \cite{Chen:2021}. In contrast to many existing datasets,
+the 102-category \emph{Flowers} set consists of a large number of relatively
+similar categories, each representing a genus of flower that is commonly found
+on the British Isles \cite{Nilsback:2008}. Given the similarity between the
+categories, coupled with the relatively small volume of training
+data\footnote{Training: 1020 images; Validation: 1020 images; Testing: 6149
+images.}, the \emph{Flowers} dataset presents a notably difficult problem.
+
+Previous experiments utilising support vector machines (SVMs) equipped with
+weighted linear combinations of numerous kernels can attain impressive
+test-accuracies of up to $72.8$\% \cite{Nilsback:2008}, where the optimum
+weights can be systematically learned \cite{Varma:2007}. Subsequently developed
+models based on \emph{Inception-v3}, trained with the 14-million-sample
+\emph{ImageNet} dataset, have achieved an impressive $94$\% test-accuracy on
+\emph{Flowers} \cite{Xia:2017}.
+
+As the capabilities of machine learning advance, and demand increases, the
+complexity of the datasets on which neural networks are expected to work will
+invariably rise, thus giving rise to the importance of research into the
+systematic learning of large-category datasets, often with restricted volumes of
+training samples.  The DNN presented henceforth uses a combination of
+convolutions, batch normalisation, the ReLU activation function, cross-entropy
+loss with softmax, and learning-rate scheduling to attain a test-accuracy of
+$\networkperformance$\% with no pre-trained information.
+
 \section{Method}
 \section{Network Architecture}
 \section{Results and Evaluation}
 \section{Conclusion and Further Work}
 
-\nocite{*} % TODO remove
+\clearpage % TODO: remove
 \bibliographystyle{IEEEtran}
 \bibliography{bibliography}
 \end{document}
