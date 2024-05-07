@@ -11,8 +11,9 @@ class _ModelDriver:
     """
     Drives a PyTorch module/model by supporting a training and testing framework
     """
-    _BATCH_SIZE: Final[int] = 32
-    _SAVE_PATH = "data/flowers_net.pth"
+    _BATCH_SIZE: Final[int] = 16
+    _SAVE_PATH = "data/flowers-net.pth"
+    _FIGURES_DIRECTORY = "figures/"
 
     _DATASET_TEMPLATES: Final[dict[str, transforms.Compose]] = {
         "train": transforms.Compose([
@@ -87,7 +88,7 @@ class _ModelDriver:
               f"\t\tValidation data accuracy: {validation_accuracy:.2f} %\n"
               f"\t\tClosing learning rate: {learning_rates[0]}"
               f"{' (scheduled)' if learning_rates[0] != learning_rates[1] else ''}\n"
-              f"\t\tAccumulated loss: {epoch_loss}")
+              f"\t\tAccumulated training loss: {epoch_loss}")
 
     @staticmethod
     def _count_correct_predictions(probabilities: torch.Tensor, truths: torch.Tensor) -> int:
@@ -112,11 +113,11 @@ class _ModelDriver:
         inputs = batch_data[0].to(torch.get_default_device())
         return self._model(inputs).to(torch.get_default_device()), batch_data[1].to(torch.get_default_device())
 
-    def _validate_on_data(self, test_data: DataLoader) -> float:
+    def _validate_on_data(self, reference_data: DataLoader) -> float:
         """
         Evaluate the model over the entire given dataset
 
-        :param test_data: The data split on which the model should be tested
+        :param reference_data: The data split on which the model should be tested
         :return: The percentage accuracy of the model
         """
         self._model.eval()
@@ -126,7 +127,7 @@ class _ModelDriver:
 
         with torch.no_grad():
             data: list[torch.Tensor]
-            for data in test_data:
+            for data in reference_data:
                 outputs, labels = self._evaluate_batch(data)
                 correct += self._count_correct_predictions(outputs, labels)
                 total += labels.size(0)
@@ -178,15 +179,25 @@ class _ModelDriver:
         Evaluate the entire model against the set of training data and output the results
         """
         print("Testing...")
-
         if not self._trained:
-            print("\tUntrained model; loading from " + _ModelDriver._SAVE_PATH)
-            self._model.load_state_dict(torch.load(_ModelDriver._SAVE_PATH))
+            print("\tUntrained model; loading pre-trained model from " + _ModelDriver._SAVE_PATH)
+            self._model.load_state_dict(torch.load(_ModelDriver._SAVE_PATH, map_location=torch.get_default_device()))
 
         print(f"\tEntire network accuracy: {self._validate_on_data(self._test_data):.2f} %.\n"
               f"Finished testing.")
 
-    def __init__(self, model: torch.nn.Module):
+    def graph_network(self) -> None:
+        """
+        Produce a vectorised PDF graph of the neural network layers and store in the FIGURES_DIRECTORY. In addition to
+        TorchViz, this operation requires the GraphViz Python library and system program (verify with 'dot -V').
+        """
+        from torchviz import make_dot
+
+        make_dot(self._model(next(iter(self._training_data))[0].to(torch.get_default_device())),
+                 params=dict(list(self._model.named_parameters()))) \
+            .render(_ModelDriver._FIGURES_DIRECTORY + "/network_graph", format="pdf", cleanup=True)
+
+    def __init__(self, model: torch.nn.Module) -> None:
         """
         Initialise the model driver: prepare data in its train-test-validation split, and configure hyperparameters and
         model utility functions such as the optimiser, scheduler, and loss function.
@@ -197,8 +208,8 @@ class _ModelDriver:
         self._trained = False
 
         self._training_data = self._download_data_split("train")
-        self._test_data = self._download_data_split("test")
         self._validation_data = self._download_data_split("val")
+        self._test_data = self._download_data_split("test")
 
         self._loss = torch.nn.CrossEntropyLoss()
 
@@ -237,8 +248,13 @@ def identify_optimal_device() -> str:
 
 
 if __name__ == "__main__":
+    graph = False
+
     torch.set_default_device(identify_optimal_device())
     driver = _ModelDriver(FlowersModel())
 
-    driver.train_model(100)
-    driver.evaluate_model()
+    if graph:
+        driver.graph_network()
+    else:
+        driver.train_model(100)
+        driver.evaluate_model()

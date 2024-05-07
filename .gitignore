@@ -1,7 +1,9 @@
 # Classifier
 
 classifier/.*
+classifier/__pycache__
 classifier/data
+classifier/figures
 !classifier/.run
 
 # Standard TeX/latexmk temporary files
