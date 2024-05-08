@@ -2,7 +2,7 @@
 %
 \documentclass[journal]{IEEEtran}
 \usepackage[en-GB]{datetime2}
-\usepackage{xcolor}
+\usepackage{xcolor, amsmath, amssymb}
 \usepackage[
     colorlinks,
     linkcolor={red!50!black},
@@ -12,17 +12,21 @@
 
 \newcommand\dotsep{\enspace\textperiodcentered\enspace}
 \newcommand\networkperformance{43}
+\DeclareMathOperator\relu{\mathsf{ReLU}}
+\DeclareMathOperator\convol{\mathsf{Conv2d}}
+\DeclareMathOperator\weight{\mathsf{Weight}}
+\DeclareMathOperator\bias{\mathsf{Bias}}
 
 \title{Classification of the 102-Category \emph{Flowers} Dataset with
     Convolutional Deep Neural Networks}
 \author{Examination Candidate \#Y3898772%
-    \thanks{Manuscript prepared with \LaTeX\ and \texttt{IEEEtran} on \today.}
-    \thanks{Submitted in partial fulfilment of the requirements of the 
-        \href{https://www.york.ac.uk/students/studying/manage/programmes/%
-        module-catalogue/module/COM00026I/2023-24}{\emph{Intelligent Systems:
-        Machine Learning and Optimisation}} module assignment at the University
-        of York in the 2023/24 academic year.}%
-}
+    \thanks{Manuscript prepared with \LaTeX\ and \texttt{IEEEtran} on \today.}}
+
+\IEEEspecialpapernotice{Submitted in partial fulfilment of the requirements of
+    the \href{https://www.york.ac.uk/students/studying/manage/programmes/%
+    module-catalogue/module/COM00026I/2023-24}{\emph{Intelligent Systems:
+    Machine Learning and Optimisation}} module assignment at the University of
+    York in the 2023/24 academic year.\vspace{-2ex}}
 
 \begin{document}
 \maketitle
@@ -44,13 +48,9 @@
     whereas the constructed CDNN achieves $\mathbf{\networkperformance}$\%
     accuracy on the test data split.
 \end{abstract}
-\begin{IEEEkeywords}
-    Image classification, computer vision, convolutional networks, deep neural
-    networks
-\end{IEEEkeywords}
 \section{Introduction}
-\IEEEPARstart{T}{raditional} classification-based computer vision problems are
-concerned with the training of DNNs to categorise images within a fixed set of
+\IEEEPARstart{C}{lassical} classification-based computer vision problems are
+concerned with the training of DNNs to categorise images by a fixed set of
 `labels'. Often, this involves recognising images from a wide range of highly
 disjointed categories, and significant work and experimentation has been
 conducted in this area \cite{Chen:2021}. In contrast to many existing datasets,
@@ -71,17 +71,98 @@ models based on \emph{Inception-v3}, trained with the 14-million-sample
 
 As the capabilities of machine learning advance, and demand increases, the
 complexity of the datasets on which neural networks are expected to work will
-invariably rise, thus giving rise to the importance of research into the
-systematic learning of large-category datasets, often with restricted volumes of
-training samples.  The DNN presented henceforth uses a combination of
-convolutions, batch normalisation, the ReLU activation function, cross-entropy
-loss with softmax, and learning-rate scheduling to attain a test-accuracy of
-$\networkperformance$\% with no pre-trained information.
+invariably rise, thus giving justification to the importance of research into
+the systematic learning of large-category datasets, often with restricted
+volumes of training samples.  The DNN presented henceforth uses a combination of
+convolutions, batch normalisation, the rectified linear activation function,
+cross-entropy-softmax loss, and learning-rate scheduling to attain a
+test-accuracy of $\networkperformance$\% with no pre-trained information.
 
 \section{Method}
-\section{Network Architecture}
-\section{Results and Evaluation}
-\section{Conclusion and Further Work}
+The designed CDNN follows a typical convolutional process: given a batch of
+three-channel (RGB) images each representable as tensors over $\mathbb{Q}_+$,
+the CDNN passes the batch through a sequence of hidden layers:
+\begin{enumerate}
+    \item Using a $3 \times 3$ kernel, perform two-dimensional convolution over
+        the three-channel input to produce a 32-channel output. Iterate
+        over all batch images; \label{item:method-first-stage}
+    \item Execute batch-normalisation on the 32-channel tensor;
+    \item Activate the batch-normalised tensor with the rectified linear unit
+        activation function; and
+    \item Perform two-dimensional max-pooling on the output with a $2$-stride $2
+        \times 2$ kernel. \label{item:method-last-stage}
+    \item Repeat stages \ref{item:method-first-stage} to
+        \ref{item:method-last-stage} with increasing numbers of input-output
+        convolution channels: $32 \to 64$ and $64 \to 128$, to yield a
+        128-channel convolved tensor, which has been normalised, activated, and
+        pooled;
+    \item Linearise the feature map using a four-stage process to create a
+        102-component probability tensor for each image in the batch.
+\end{enumerate}
+Each aspect of these hidden layers, and the cross-entropy-softmax loss function,
+is now explored in detail.
+
+\subsection{Two-Dimensional Convolution}
+On a single $C_\text{in}$-channel image of dimensions
+$W_\text{in}$-by-$H_\text{in}$, the two-dimensional convolution operator
+$\convol$ is such that
+\begin{equation}
+    \convol \colon
+        \mathbb{Q}^{\left( C_\text{in}, H_\text{in}, W_\text{in} \right)}_+ \to
+        \mathbb{Q}^{\left( C_\text{out}, H_\text{out}, W_\text{out} \right)}_+,
+\end{equation}
+where, for all tensors $\mathcal{A} \in \mathbb{Q}^{\left( C_\text{in},
+H_\text{in}, W_\text{in} \right)}_+$ containing channels $\mathcal{A}_1, \ldots,
+\mathcal{A}_{C_\text{in}}$,
+\begin{equation}
+    \mathcal{A} \mapsto \sum_{i=1}^{C_\text{in}} \left[
+            \weight\left(C_\text{out}, i\right) \star \mathcal{A}_i
+        \right] + \bias(C_\text{out}).
+    \label{eqn:convolution}
+\end{equation}
+(The convolutional cross-correlation operator is denoted by $\star$, and
+$\weight$ and $\bias$ select the suitable channel-wise weight and global bias
+respectively.) All $C_\text{out}$ two-dimensional components of the codomain
+of $\convol$, $\mathbb{Q}^{\left( C_\text{out}, H_\text{out}, W_\text{out}
+\right)}_+$, are a \emph{feature maps} of the convolution.
+
+Convolution is an important stage of the feature-extraction process, whereby
+unimportant features are abstracted away from the attention of the learnable
+parameters of the CDNN. Kernel sizes of $3 \times 3$ were selected empirically,
+and based on the germane CDNN literature \cite{Wang:2016}.
+
+\subsection{Batch Normalisation (BN)}
+BN, typically performed on the convolved tensor, causes faster convergence of
+the CDNN\footnotemark. Normalisation as a pre-processing technique is known to
+substantially improve the performance of a DNN, and BN extends the processing to
+each hidden layer of the network. Equation \eqref{eqn:batch-norm} represents the
+transformation of the convoluted batch-tensor $\mathcal{B}$, where
+$\mu_\mathcal{B}$ and $\sigma_\mathcal{B}$ denote the mean and standard
+deviation of $\mathbb{Q}$-components of $\mathcal{B}$ respectively; $\gamma$ and
+$\beta$ represent shift parameters of the standard deviation and mean
+respectively \cite{Laarhoven:2017}.
+\begin{equation}
+    \mathcal{B}_\text{BN} = \frac{%
+        \gamma\left(\mathcal{B}-\mu_\mathcal{B}\right)}
+    {\sigma_\mathcal{B}} + \beta \label{eqn:batch-norm}
+\end{equation}
+Given the known regularising properties of BN \cite{Luo:2019}, no further
+techniques were employed to discourage over-fitting.
+\footnotetext{The usefulness of BN was originally thought to be explained by its
+supposed tenancy to reduce the DNN's \emph{internal covariate shift} (ICS)
+\cite{Ioffe:2015}. In a groundbreaking 2019 study, it was shown that BN improves
+the \emph{$\beta$-Lipschitzness} of the derivative of the cost function, hence
+smoothening the cost function, enabling larger learning rates during gradient
+descent \cite{Santurkar:2019}.}
+
+\subsection{Activation with the Rectified Linear Unit}
+\subsection{Max-Pooling}
+\subsection{Linearisation}
+\subsection{Cross-Entropy Loss with Softmax}
+
+\section{Network Architecture (TODO)}
+\section{Results and Evaluation (TODO)}
+\section{Conclusion and Further Work (TODO)}
 
 \clearpage % TODO: remove
 \bibliographystyle{IEEEtran}
