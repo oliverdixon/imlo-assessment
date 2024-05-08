@@ -1,0 +1,93 @@
+\pgfdeclarelayer{nnlayerbound}
+\pgfdeclarelayer{nnlayercontent}
+\pgfdeclarelayer{nnlayerarrow}
+\pgfsetlayers{nnlayerbound, nnlayercontent, nnlayerarrow}
+%
+\begin{tikzpicture}
+    \def\hpad{.5cm}
+    \def\vpad{1.3cm}
+
+    \begin{pgfonlayer}{nnlayercontent}
+    \begin{scope}[every node/.append style={draw, minimum height=2em,
+            fill=white}] % Fill with white so that the layering is visible
+        \node (in) {\color{red}{Input ($4 \times 3 \times 224 \times 224$)}};
+
+        \node [right = \hpad of in]    (conv1) {$\convol$ ($3$ / $32$)};
+        \node [right = \hpad of conv1]   (bn1) {$\batchnorm$};
+        \node [right = \hpad of bn1]   (relu1) {$\relu$};
+        \node [right = \hpad of relu1] (pool1) {$\maxpool$};
+
+        \node [right = \hpad of pool1] (conv2) {$\convol$ ($32$ / $64$)};
+        \node [right = \hpad of conv2]   (bn2) {$\batchnorm$};
+        \node [below = \vpad of bn2.east, anchor=east]
+            (relu2) {$\relu$};
+        \node [left  = \hpad of relu2] (pool2) {$\maxpool$};
+
+        \node [left =  \hpad of pool2] (conv3) {$\convol$ ($64$ / $128$)};
+        \node [left  = \hpad of conv3]   (bn3) {$\batchnorm$};
+        \node [left  = \hpad of bn3]   (relu3) {$\relu$};
+        \node [left  = \hpad of relu3] (pool3) {$\maxpool$};
+
+        \node [left  = \hpad of pool3]   (lin1) {$\linear$ ($86528$ / $2048$)};
+        \node [left  = \hpad of lin1]   (relu4) {$\relu$};
+
+        \node [below = \vpad of relu4.west, anchor=west]
+            (lin2) {$\linear$ ($2048$ / $1024$)};
+        \node [right = \hpad of lin2] (relu5) {$\relu$};
+
+        \node [right = \hpad of relu5] (lin3) {$\linear$ ($1024$ / $512$)};
+        \node [right = \hpad of lin3] (relu6) {$\relu$};
+
+        \node [right = \hpad of relu6]  (lin4) {$\linear$ ($512$ / $102$)};
+        \node [right = \hpad of lin4]  (relu7) {$\relu$};
+
+        \node[right = \hpad of relu7] (out)
+            {\color{red}{Output ($4 \times 102$)}};
+    \end{scope}
+    \end{pgfonlayer}
+
+    % Draw CONV-BN-RELU-POOL layer bounding boxes and intra-layer arrows
+    \foreach \layeridx in {1, 2, 3} {
+        \begin{pgfonlayer}{nnlayerbound}
+            \node[draw, lightgray, dashed, fit=
+                (conv\layeridx) (bn\layeridx)
+                (relu\layeridx) (pool\layeridx)]
+                {};
+        \end{pgfonlayer}
+
+        \begin{pgfonlayer}{nnlayerarrow}
+            \draw[-latex] (conv\layeridx) -- (bn\layeridx);
+            \draw[-latex] (bn\layeridx)   -- (relu\layeridx);
+            \draw[-latex] (relu\layeridx) -- (pool\layeridx);
+        \end{pgfonlayer}
+    }
+
+    % Inter-layer arrows for CONV-BN-RELU-POOL layers
+    \begin{pgfonlayer}{nnlayerarrow}
+        \draw[-latex, red] (pool1) -- (conv2);
+        \draw[-latex, red] (pool2) -- (conv3);
+        \draw[-latex, red] (pool3) -- (lin1);
+    \end{pgfonlayer}
+
+    % Draw LIN-RELU layer bounding boxes and intra-layer arrows
+    \foreach \linidx/\reluidx in {1/4, 2/5, 3/6, 4/7} {
+        \begin{pgfonlayer}{nnlayerbound}
+            \node[draw, lightgray, dashed, fit= (lin\linidx) (relu\reluidx)] {};
+        \end{pgfonlayer}
+        \begin{pgfonlayer}{nnlayerarrow}
+            \draw[-latex] (lin\linidx) -- (relu\reluidx);
+        \end{pgfonlayer}
+    }
+
+    \begin{pgfonlayer}{nnlayerarrow}
+        % Inter-layer arrows for LIN-RELU layers
+        \draw[-latex, red] (relu4) -- (lin2);
+        \draw[-latex, red] (relu5) -- (lin3);
+        \draw[-latex, red] (relu6) -- (lin4);
+
+        % Input and output arrows
+        \draw[-latex, red] (in) -- (conv1);
+        \draw[-latex, red] (relu7) -- (out);
+    \end{pgfonlayer}
+\end{tikzpicture}
+

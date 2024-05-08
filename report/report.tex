@@ -2,7 +2,7 @@
 %
 \documentclass[journal]{IEEEtran}
 \usepackage[en-GB]{datetime2}
-\usepackage{xcolor, amsmath, amssymb}
+\usepackage{xcolor, amsmath, amssymb, tikz, nidanfloat}
 \usepackage[
     colorlinks,
     linkcolor={red!50!black},
@@ -10,11 +10,17 @@
     urlcolor={blue!80!black}
 ]{hyperref}
 
+\usetikzlibrary{positioning, fit}
+
 \newcommand\dotsep{\enspace\textperiodcentered\enspace}
 \newcommand\networkperformance{43}
 \DeclareMathOperator\relu{\mathsf{ReLU}}
+\DeclareMathOperator\batchnorm{\mathsf{BNorm}}
+\DeclareMathOperator\linear{\mathsf{Lin}}
+\DeclareMathOperator\celoss{\mathsf{CELoss}}
 \DeclareMathOperator\convol{\mathsf{Conv2d}}
 \DeclareMathOperator\weight{\mathsf{Weight}}
+\DeclareMathOperator\maxpool{\mathsf{MaxPool2d}}
 \DeclareMathOperator\bias{\mathsf{Bias}}
 
 \title{Classification of the 102-Category \emph{Flowers} Dataset with
@@ -125,11 +131,10 @@ $\weight$ and $\bias$ select the suitable channel-wise weight and global bias
 respectively.) All $C_\text{out}$ two-dimensional components of the codomain
 of $\convol$, $\mathbb{Q}^{\left( C_\text{out}, H_\text{out}, W_\text{out}
 \right)}_+$, are a \emph{feature maps} of the convolution.
-
 Convolution is an important stage of the feature-extraction process, whereby
 unimportant features are abstracted away from the attention of the learnable
 parameters of the CDNN. Kernel sizes of $3 \times 3$ were selected empirically,
-and based on the germane CDNN literature \cite{Wang:2016}.
+and based on the relevant literature \cite{Wang:2016}.
 
 \subsection{Batch Normalisation (BN)}
 BN, typically performed on the convolved tensor, causes faster convergence of
@@ -142,7 +147,7 @@ deviation of $\mathbb{Q}$-components of $\mathcal{B}$ respectively; $\gamma$ and
 $\beta$ represent shift parameters of the standard deviation and mean
 respectively \cite{Laarhoven:2017}.
 \begin{equation}
-    \mathcal{B}_\text{BN} = \frac{%
+    \batchnorm(\mathcal{B}) = \frac{%
         \gamma\left(\mathcal{B}-\mu_\mathcal{B}\right)}
     {\sigma_\mathcal{B}} + \beta \label{eqn:batch-norm}
 \end{equation}
@@ -160,7 +165,18 @@ descent \cite{Santurkar:2019}.}
 \subsection{Linearisation}
 \subsection{Cross-Entropy Loss with Softmax}
 
-\section{Network Architecture (TODO)}
+\section{Network Architecture}
+Figure \ref{fig:network-architecture} is a diagrammatic representation of the
+CDNN architecture.
+\begin{figure*}[t]
+    \input{network.tikz.tex}%
+    \caption{The network architecture of the CDNN, where $\mathsf{Func}~(N / M)$
+    denotes a transformation from $N$ features to $M$ features, and $\left(I_1
+    \times I_2 \times \ldots \times I_K\right)$ notates a $K$-way tensor of the
+    specified dimensions.}%
+    \label{fig:network-architecture}
+\end{figure*}
+
 \section{Results and Evaluation (TODO)}
 \section{Conclusion and Further Work (TODO)}
 
