@@ -210,9 +210,9 @@ learning-relevant mapping is given by \eqref{eqn:loss} using the notation in
         {\sum_{j=1}^n \exp\left(w^T_j x_i + b_j\right)}%
     \label{eqn:loss}
 \end{equation}
-The $\loss$ was also used to inform a \emph{learning rate scheduler}, such that
-the learning rate of the stochastic gradient descent would reduce by a factor of
-$1/5$ in the event of a non-decreasing loss over multiple epochs
+The $\loss$ was also used to inform a \emph{learning rate (LR) scheduler}, such
+that the learning rate of the stochastic gradient descent would reduce by a
+factor of $1/5$ in the event of a non-decreasing loss over multiple epochs
 \cite{Konar:2020}.
 
 \section{Network Architecture}
@@ -220,7 +220,17 @@ Figure \ref{fig:network-architecture} is a diagrammatic representation of the
 CDNN.
 
 \section{Results and Evaluation (TODO)}
-\section{Conclusion and Further Work (TODO)}
+
+\section{Conclusion and Further Work}
+Considering the lack of pre-trained weights, coupled with the fast convergence
+over a small training split, this CDNN is deemed to have achieved reasonable,
+although certainly not maximal, test-accuracy. The modelled CDNN approximates
+initial experiments by the VGG team \cite{Nilsback:2008}, albeit using a
+differing DNN architecture. Within the space of convolutional DNNs, the
+architecture described by Figure \ref{fig:network-architecture} is supported by
+sensible design principles, although additional work should be undertaken to
+determine the potential utility of adding hidden layers, or employing more
+intricate LR schedulers \cite{Loshchilov:2017}.
 
 \clearpage % TODO: remove
 \bibliographystyle{IEEEtran}

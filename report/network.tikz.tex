@@ -6,6 +6,7 @@
     \setlength\hpad{.5cm}
     \setlength\vpad{.25cm}
     \setlength\hvpad{1.35cm}
+    \colorlet{emphasis-red}{red} % Might need dulling, e.g. 'red!70!black'
     \newcommand*\nodetable[2]{%
         \begin{tabular}{@{}c@{}}%
             #1 \\
@@ -15,7 +16,7 @@
 
     \begin{scope}[every node/.append style={draw, minimum height=2em}]
         % INPUT LAYER
-        \node (in) {\color{red}%
+        \node (in) {\color{emphasis-red}%
             \nodetable{\emph{Input}}{$16 \times 3 \times 224 \times 224$}};
 
         % LAYER #1
@@ -77,7 +78,7 @@
             \nodetable{$\relu$}{\ldots}};
 
         % OUTPUT LAYER
-        \node [right = \hpad of relu7] (out) {\color{red}%
+        \node [right = \hpad of relu7] (out) {\color{emphasis-red}%
             \nodetable{\emph{Output}}{$16 \times 102$}};
     \end{scope}
 
@@ -89,23 +90,22 @@
     }
 
     % Inter-layer arrows for CONV-BN-RELU-POOL layers
-    \draw[-latex, red] (pool1) --    (conv2);
-    \draw[-latex, red] (pool2) --    (conv3);
-    \draw[-latex, red] (pool3) --    (collapse);
-    \draw[-latex, red] (collapse) -- (lin1);
+    \draw[-latex, emphasis-red] (pool1) --    (conv2);
+    \draw[-latex, emphasis-red] (pool2) --    (conv3);
+    \draw[-latex, emphasis-red] (pool3) --    (collapse);
+    \draw[-latex, emphasis-red] (collapse) -- (lin1);
 
     % Draw LIN-RELU layer intra-layer arrows
-    \foreach \linidx/\reluidx in {1/4, 2/5, 3/6, 4/7} {
+    \foreach \linidx/\reluidx in {1/4, 2/5, 3/6, 4/7}
         \draw[-latex] (lin\linidx) -- (relu\reluidx);
-    }
 
     % Inter-layer arrows for LIN-RELU layers
-    \draw[-latex, red] (relu4) -- (lin2);
-    \draw[-latex, red] (relu5) -- (lin3);
-    \draw[-latex, red] (relu6) -- (lin4);
+    \draw[-latex, emphasis-red] (relu4) -- (lin2);
+    \draw[-latex, emphasis-red] (relu5) -- (lin3);
+    \draw[-latex, emphasis-red] (relu6) -- (lin4);
 
     % Input and output arrows
-    \draw[-latex, red] (in) -- (conv1);
-    \draw[-latex, red] (relu7) -- (out);
+    \draw[-latex, emphasis-red] (in) -- (conv1);
+    \draw[-latex, emphasis-red] (relu7) -- (out);
 \end{tikzpicture}
 
