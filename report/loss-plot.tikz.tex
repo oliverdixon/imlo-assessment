@@ -1,0 +1,29 @@
+\begin{tikzpicture}
+    \begin{axis}[
+                height=3.5cm,
+                width=\linewidth,
+                xlabel={Epoch Number},
+                ylabel={Loss},
+                legend pos=north west,
+                ymajorgrids=true,
+                grid style=dashed,
+                legend style={nodes={scale=0.7, transform shape}},
+                legend image post style={mark=*}
+            ]
+        %
+        % TRAINING LOSS
+        %
+        \addplot[color=blue, mark=*, mark size=0.8pt] coordinates {
+            (0.1,0.1)(0.2,0.2)(0.3,0.3)
+        };
+        \addlegendentry{Training Accuracy}
+        %
+        % VALIDATION LOSS
+        %
+        \addplot[color=red, mark=*, mark size=0.8pt] coordinates {
+            (0.05,0.05)(0.15,0.15)(0.8,0.3)
+        };
+        \addlegendentry{Validation Accuracy}
+    \end{axis}
+\end{tikzpicture}
+

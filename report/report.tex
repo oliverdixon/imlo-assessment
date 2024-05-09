@@ -3,6 +3,7 @@
 \documentclass[journal]{IEEEtran}
 \usepackage[en-GB]{datetime2}
 \usepackage{xcolor, amsmath, amssymb, tikz}
+\usepackage{pgfplots}
 \usepackage[
     colorlinks,
     linkcolor={red!50!black},
@@ -11,6 +12,7 @@
 ]{hyperref}
 
 \usetikzlibrary{positioning, fit}
+\pgfplotsset{compat=1.18, compat/show suggested version=false}
 
 \newcommand\dotsep{\enspace\textperiodcentered\enspace}
 \newcommand\networkperformance{43}
@@ -183,13 +185,11 @@ The rectified linear unit (ReLU) activator is the function $\relu \colon
 DNNs due to its thresholding properties \cite{Agarap:2019}.
 
 \subsection{Max-Pooling}
-Pooling, in its most general form, uses a \emph{pooling operator} to reduce
-information in fixed regions to an aggregate value \cite{Sun:2017}, hence
-lowering the complexity and number of features with which the DNN is expected to
-work. In tasks relating to computer vision, it is typical to employ
-\emph{max-pooling}, whereby the pooling operator aggregates a region by
-selecting its maximal value \cite{Nagi:2011}. A $2 \times 2$ region was
-empirically chosen.
+Pooling uses some operator to reduce information in fixed regions to an
+aggregate value \cite{Sun:2017}, hence lowering the complexity of features on
+which the DNN operates.  \emph{Max-pooling} was used in the CDNN, whereby the
+pooling operator aggregates a region by selecting its maximal value
+\cite{Nagi:2011}. A $2 \times 2$ region was empirically chosen.
 
 \subsection{Linearisation}
 Linearisation, denoted by $\linear(\mathcal{A})$, applies a linear transform
@@ -202,24 +202,38 @@ linearisation process, each consisting of the `activated composition' $\relu
 The cross-entropy loss composed with softmax, henceforth denoted $\loss$, was
 selected as the suitable objective-loss function given its established
 performance in classification-based computer vision tasks. The machine
-learning-relevant mapping is given by \eqref{eqn:loss} using the notation in
-\cite{Jie:2018}.
-\begin{equation}
-    \loss(x, y) = \sum_{i=1}^m \log\frac%
-        {\exp\left(w^T_{y_i} x_i + b_{y_i}\right)}%
-        {\sum_{j=1}^n \exp\left(w^T_j x_i + b_j\right)}%
-    \label{eqn:loss}
-\end{equation}
-The $\loss$ was also used to inform a \emph{learning rate (LR) scheduler}, such
-that the learning rate of the stochastic gradient descent would reduce by a
-factor of $1/5$ in the event of a non-decreasing loss over multiple epochs
-\cite{Konar:2020}.
+learning-relevant mapping is given by \cite{Jie:2018}.
 
 \section{Network Architecture}
-Figure \ref{fig:network-architecture} is a diagrammatic representation of the
+Figure \ref{fig:network-architecture} shows a diagrammatic representation of the
 CDNN.
 
-\section{Results and Evaluation (TODO)}
+\section{Results and Evaluation}
+The CDNN used an initial LR of $0.001$, with $\loss$ being used to inform a
+\emph{learning rate (LR) scheduler}, such that the learning rate of the
+stochastic gradient descent (SGD) would reduce by a factor of $1/5$ in the event
+of a non-decreasing loss over multiple epochs \cite{Konar:2020}. A batch size of
+$16$ was chosen based on the recommended literature and comparable experiments
+across different sets of hyperparameters \cite{Kandel:2020}. SGD was utilised
+over alternative commonly used optimisers due to the superior generalisability
+of SGD \cite{Hardt:2016}, which is a property of particular importance
+considering the skewed split sizes of \emph{Flowers}.
+
+A single \emph{NVIDIA GeForce GTX 1080 Ti} GPU was used in conjunction with an
+\emph{Intel Xeon Silver 4114} CPU @ $2.20$GHz\footnote{This hardware is
+accessible via SSH at \texttt{csgpu2.cs.york.ac.uk}.}. Training occurred over
+\textbf{TODO} minutes and iterated over \textbf{TODO} epochs, until the
+early-stopping mechanism identified over-fitting. Figure \ref{fig:loss-plot}
+displays the losses over epochs, where each epoch performed a self-test with the
+entire validation set.  The eventual on the test data (executed after a full
+training cycle) was $\networkperformance$\%.
+
+\begin{figure}
+    \input{loss-plot.tikz.tex}%
+    \caption{The accuracy of training data and validation data over training
+        epochs}%
+    \label{fig:loss-plot}
+\end{figure}
 
 \section{Conclusion and Further Work}
 Considering the lack of pre-trained weights, coupled with the fast convergence
@@ -232,8 +246,17 @@ sensible design principles, although additional work should be undertaken to
 determine the potential utility of adding hidden layers, or employing more
 intricate LR schedulers \cite{Loshchilov:2017}.
 
-\clearpage % TODO: remove
 \bibliographystyle{IEEEtran}
 \bibliography{bibliography}
+\vfill
+\begin{center}
+    \color{gray}%
+    \begin{tabular}{c}
+        \emph{Manuscript prepared with} \\[8pt]
+        \huge\LaTeX \\[8pt]
+        \emph{and} \\[8pt]
+        \huge\texttt{IEEEtran}
+    \end{tabular}
+\end{center}
 \end{document}
 
