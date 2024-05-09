@@ -170,10 +170,11 @@ Figure \ref{fig:network-architecture} is a diagrammatic representation of the
 CDNN architecture.
 \begin{figure*}[t]
     \input{network.tikz.tex}%
-    \caption{The network architecture of the CDNN, where $\mathsf{Func}~(N / M)$
-    denotes a transformation from $N$ features to $M$ features, and $\left(I_1
-    \times I_2 \times \ldots \times I_K\right)$ notates a $K$-way tensor of the
-    specified dimensions.}%
+    \caption{The network architecture of the CDNN, where the top row indicates
+    the function of the current layer, and the bottom row indicates the shape of
+    the tensor \emph{following} the transformation. With a batch size of $16$, a
+    four-way batch tensor of RGB $224 \times 224$ images is translated to a set
+    of probability vectors for each image, over each of the 102 categories.}
     \label{fig:network-architecture}
 \end{figure*}
 

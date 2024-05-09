@@ -1,93 +1,111 @@
-\pgfdeclarelayer{nnlayerbound}
-\pgfdeclarelayer{nnlayercontent}
-\pgfdeclarelayer{nnlayerarrow}
-\pgfsetlayers{nnlayerbound, nnlayercontent, nnlayerarrow}
-%
+\centering%
 \begin{tikzpicture}
-    \def\hpad{.5cm}
-    \def\vpad{1.3cm}
+    \newlength\hpad
+    \newlength\vpad
+    \newlength\hvpad
+    \setlength\hpad{.5cm}
+    \setlength\vpad{.5cm}
+    \setlength\hvpad{1.5cm}
+    \newcommand*\nodetable[2]{%
+        \begin{tabular}{@{}c@{}}%
+            #1 \\
+            \footnotesize #2%
+        \end{tabular}%
+    }
 
-    \begin{pgfonlayer}{nnlayercontent}
-    \begin{scope}[every node/.append style={draw, minimum height=2em,
-            fill=white}] % Fill with white so that the layering is visible
-        \node (in) {\color{red}{Input ($4 \times 3 \times 224 \times 224$)}};
+    \begin{scope}[every node/.append style={draw, minimum height=2em}]
+        % INPUT LAYER
+        \node (in) {\color{red}%
+            \nodetable{\emph{Input}}{$16 \times 3 \times 224 \times 224$}};
 
-        \node [right = \hpad of in]    (conv1) {$\convol$ ($3$ / $32$)};
-        \node [right = \hpad of conv1]   (bn1) {$\batchnorm$};
-        \node [right = \hpad of bn1]   (relu1) {$\relu$};
-        \node [right = \hpad of relu1] (pool1) {$\maxpool$};
+        % LAYER #1
+        \node [right = \hpad of in] (conv1) {
+            \nodetable{$\convol$}{$16 \times 32 \times 222 \times 222$}};
+        \node [right = \hpad of conv1] (bn1) {
+            \nodetable{$\batchnorm$}{\ldots}};
+        \node [right = \hpad of bn1] (relu1) {
+            \nodetable{$\relu$}{\ldots}};
+        \node [right = \hpad of relu1] (pool1) {
+            \nodetable{$\maxpool$}{$16 \times 32 \times 111 \times 111$}};
 
-        \node [right = \hpad of pool1] (conv2) {$\convol$ ($32$ / $64$)};
-        \node [right = \hpad of conv2]   (bn2) {$\batchnorm$};
-        \node [below = \vpad of bn2.east, anchor=east]
-            (relu2) {$\relu$};
-        \node [left  = \hpad of relu2] (pool2) {$\maxpool$};
+        % LAYER #2
+        \node [right = \hpad of pool1] (conv2) {
+            \nodetable{$\convol$}{$16 \times 64 \times 109 \times 109$}};
+        \node [below = \hvpad of conv2.east, anchor=east] (bn2) {
+            \nodetable{$\batchnorm$}{\ldots}};
+        \node [left = \hpad of bn2] (relu2) {
+            \nodetable{$\relu$}{\ldots}};
+        \node [left  = \hpad of relu2] (pool2) {
+            \nodetable{$\maxpool$}{$16 \times 64 \times 54 \times 54$}};
 
-        \node [left =  \hpad of pool2] (conv3) {$\convol$ ($64$ / $128$)};
-        \node [left  = \hpad of conv3]   (bn3) {$\batchnorm$};
-        \node [left  = \hpad of bn3]   (relu3) {$\relu$};
-        \node [left  = \hpad of relu3] (pool3) {$\maxpool$};
+        % LAYER #3
+        \node [left =  \hpad of pool2] (conv3) {
+            \nodetable{$\convol$}{$16 \times 128 \times 52 \times 52 $}};
+        \node [left = \hpad of conv3] (bn3) {
+            \nodetable{$\batchnorm$}{\ldots}};
+        \node [left = \hpad of bn3] (relu3) {
+            \nodetable{$\relu$}{\ldots}};
+        \node [left = \hpad of relu3]  (pool3) {
+            \nodetable{$\maxpool$}{$16 \times 128 \times 26 \times 26$}};
 
-        \node [left  = \hpad of pool3]   (lin1) {$\linear$ ($86528$ / $2048$)};
-        \node [left  = \hpad of lin1]   (relu4) {$\relu$};
+        % COLLAPSE LAYER
+        \node [left = \hpad of pool3] (collapse) {
+            \nodetable{\emph{Collapse}}{$16 \times 86528$}};
 
-        \node [below = \vpad of relu4.west, anchor=west]
-            (lin2) {$\linear$ ($2048$ / $1024$)};
-        \node [right = \hpad of lin2] (relu5) {$\relu$};
+        % LAYER #4
+        \node [below = \vpad of collapse] (lin1) {
+            \nodetable{$\linear$}{$16 \times 2048$}};
+        \node [right = \hpad of lin1] (relu4) {
+            \nodetable{$\relu$}{\ldots}};
 
-        \node [right = \hpad of relu5] (lin3) {$\linear$ ($1024$ / $512$)};
-        \node [right = \hpad of lin3] (relu6) {$\relu$};
+        % LAYER #5
+        \node [right = \hpad of relu4] (lin2) {
+            \nodetable{$\linear$}{$16 \times 1024$}};
+        \node [right = \hpad of lin2] (relu5) {
+            \nodetable{$\relu$}{\ldots}};
 
-        \node [right = \hpad of relu6]  (lin4) {$\linear$ ($512$ / $102$)};
-        \node [right = \hpad of lin4]  (relu7) {$\relu$};
+        % LAYER #5
+        \node [right = \hpad of relu5] (lin3) {
+            \nodetable{$\linear$}{$16 \times 512$}};
+        \node [right = \hpad of lin3] (relu6) {
+            \nodetable{$\relu$}{\ldots}};
 
-        \node[right = \hpad of relu7] (out)
-            {\color{red}{Output ($4 \times 102$)}};
+        % LAYER #6
+        \node [right = \hpad of relu6]  (lin4) {
+            \nodetable{$\linear$}{$16 \times 102$}};
+        \node [right = \hpad of lin4]  (relu7) {
+            \nodetable{$\relu$}{\ldots}};
+
+        % OUTPUT LAYER
+        \node [right = \hpad of relu7] (out) {\color{red}%
+            \nodetable{\emph{Output}}{$16 \times 102$}};
     \end{scope}
-    \end{pgfonlayer}
 
-    % Draw CONV-BN-RELU-POOL layer bounding boxes and intra-layer arrows
+    % Draw CONV-BN-RELU-POOL layer intra-layer arrows
     \foreach \layeridx in {1, 2, 3} {
-        \begin{pgfonlayer}{nnlayerbound}
-            \node[draw, lightgray, dashed, fit=
-                (conv\layeridx) (bn\layeridx)
-                (relu\layeridx) (pool\layeridx)]
-                {};
-        \end{pgfonlayer}
-
-        \begin{pgfonlayer}{nnlayerarrow}
-            \draw[-latex] (conv\layeridx) -- (bn\layeridx);
-            \draw[-latex] (bn\layeridx)   -- (relu\layeridx);
-            \draw[-latex] (relu\layeridx) -- (pool\layeridx);
-        \end{pgfonlayer}
+        \draw[-latex] (conv\layeridx) -- (bn\layeridx);
+        \draw[-latex] (bn\layeridx)   -- (relu\layeridx);
+        \draw[-latex] (relu\layeridx) -- (pool\layeridx);
     }
 
     % Inter-layer arrows for CONV-BN-RELU-POOL layers
-    \begin{pgfonlayer}{nnlayerarrow}
-        \draw[-latex, red] (pool1) -- (conv2);
-        \draw[-latex, red] (pool2) -- (conv3);
-        \draw[-latex, red] (pool3) -- (lin1);
-    \end{pgfonlayer}
+    \draw[-latex, red] (pool1) --    (conv2);
+    \draw[-latex, red] (pool2) --    (conv3);
+    \draw[-latex, red] (pool3) --    (collapse);
+    \draw[-latex, red] (collapse) -- (lin1);
 
-    % Draw LIN-RELU layer bounding boxes and intra-layer arrows
+    % Draw LIN-RELU layer intra-layer arrows
     \foreach \linidx/\reluidx in {1/4, 2/5, 3/6, 4/7} {
-        \begin{pgfonlayer}{nnlayerbound}
-            \node[draw, lightgray, dashed, fit= (lin\linidx) (relu\reluidx)] {};
-        \end{pgfonlayer}
-        \begin{pgfonlayer}{nnlayerarrow}
-            \draw[-latex] (lin\linidx) -- (relu\reluidx);
-        \end{pgfonlayer}
+        \draw[-latex] (lin\linidx) -- (relu\reluidx);
     }
 
-    \begin{pgfonlayer}{nnlayerarrow}
-        % Inter-layer arrows for LIN-RELU layers
-        \draw[-latex, red] (relu4) -- (lin2);
-        \draw[-latex, red] (relu5) -- (lin3);
-        \draw[-latex, red] (relu6) -- (lin4);
+    % Inter-layer arrows for LIN-RELU layers
+    \draw[-latex, red] (relu4) -- (lin2);
+    \draw[-latex, red] (relu5) -- (lin3);
+    \draw[-latex, red] (relu6) -- (lin4);
 
-        % Input and output arrows
-        \draw[-latex, red] (in) -- (conv1);
-        \draw[-latex, red] (relu7) -- (out);
-    \end{pgfonlayer}
+    % Input and output arrows
+    \draw[-latex, red] (in) -- (conv1);
+    \draw[-latex, red] (relu7) -- (out);
 \end{tikzpicture}
 
