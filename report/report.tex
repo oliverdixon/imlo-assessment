@@ -2,7 +2,7 @@
 %
 \documentclass[journal]{IEEEtran}
 \usepackage[en-GB]{datetime2}
-\usepackage{xcolor, amsmath, amssymb, tikz, nidanfloat}
+\usepackage{xcolor, amsmath, amssymb, tikz}
 \usepackage[
     colorlinks,
     linkcolor={red!50!black},
@@ -17,16 +17,19 @@
 \DeclareMathOperator\relu{\mathsf{ReLU}}
 \DeclareMathOperator\batchnorm{\mathsf{BNorm}}
 \DeclareMathOperator\linear{\mathsf{Lin}}
-\DeclareMathOperator\celoss{\mathsf{CELoss}}
+\DeclareMathOperator\loss{\mathsf{SCELoss}}
 \DeclareMathOperator\convol{\mathsf{Conv2d}}
 \DeclareMathOperator\weight{\mathsf{Weight}}
 \DeclareMathOperator\maxpool{\mathsf{MaxPool2d}}
 \DeclareMathOperator\bias{\mathsf{Bias}}
 
+\newcommand\candidate{Examination Candidate \#Y3898772}
 \title{Classification of the 102-Category \emph{Flowers} Dataset with
     Convolutional Deep Neural Networks}
-\author{Examination Candidate \#Y3898772%
-    \thanks{Manuscript prepared with \LaTeX\ and \texttt{IEEEtran} on \today.}}
+\author{\candidate%
+    \thanks{Manuscript prepared with \LaTeX\ and \texttt{IEEEtran} on \today.}%
+    \thanks{All submitted work, unless stated otherwise, is the sole creation
+    of \candidate.}}
 
 \IEEEspecialpapernotice{Submitted in partial fulfilment of the requirements of
     the \href{https://www.york.ac.uk/students/studying/manage/programmes/%
@@ -36,23 +39,31 @@
 
 \begin{document}
 \maketitle
+\begin{figure*}[t]
+    % This figure must be defined on the page preceding its intended ship-out.
+    \input{network.tikz.tex}%
+    \caption{The network architecture of the CDNN, where the top row indicates
+    the function of the current layer, and the bottom row indicates the shape of
+    the tensor \emph{following} the transformation. With a batch size of $16$, a
+    four-way batch tensor of RGB $224 \times 224$ images is translated to a set
+    of probability vectors for each image, over each of the 102 categories. An
+    ellipsis (\ldots) indicates that the tensor dimensions are unchanged by the
+    corresponding transformation. Black and red arrows denote feed-forwards
+    \emph{within} and \emph{across} DNN layers, respectively.}%
+    \label{fig:network-architecture}
+\end{figure*}
 \begin{abstract}
     The classification of data into discrete categories is an ancient problem,
     recently made accessible on extremely large datasets due to substantial
     advances in hardware capability; one such advancement is the introduction of
-    graphics processing units (GPUs) in machine learning applications,
+    graphics processing units (GPUs) in machine learning (ML) applications,
     particularly for the training and evaluation of deep neural networks (DNNs).
     This report defines and evaluates such a DNN for the classification of the
     102-category \emph{Flowers} dataset%
     \footnote{\url{https://www.robots.ox.ac.uk/~vgg/data/flowers/102/}} from the
-    Visual Geometry Group at the University of Oxford.
-
-    For this purpose, a convolutional deep neural network (CDNN) was
-    constructed, using topical understandings of batch normalisation (BN)
-    techniques for regularisation. A fair 102-sided die would classify an
-    arbitrarily chosen \emph{Flowers} image in $\mathbf{0.98}$\% of instances,
-    whereas the constructed CDNN achieves $\mathbf{\networkperformance}$\%
-    accuracy on the test data split.
+    Visual Geometry Group at the University of Oxford.  For this purpose, a
+    convolutional deep neural network (CDNN) was constructed, capable of
+    attaining $\mathbf{\networkperformance}$\% test-accuracy on \emph{Flowers}.
 \end{abstract}
 \section{Introduction}
 \IEEEPARstart{C}{lassical} classification-based computer vision problems are
@@ -62,32 +73,32 @@ disjointed categories, and significant work and experimentation has been
 conducted in this area \cite{Chen:2021}. In contrast to many existing datasets,
 the 102-category \emph{Flowers} set consists of a large number of relatively
 similar categories, each representing a genus of flower that is commonly found
-on the British Isles \cite{Nilsback:2008}. Given the similarity between the
-categories, coupled with the relatively small volume of training
-data\footnote{Training: 1020 images; Validation: 1020 images; Testing: 6149
-images.}, the \emph{Flowers} dataset presents a notably difficult problem.
+on the British Isles \cite{Nilsback:2008}. Given the similarity between labels
+and the small volume of training data\footnote{Training: 1020 images;
+Validation: 1020 images; Testing: 6149 images.}, \emph{Flowers} presents a
+notably difficult problem.
 
 Previous experiments utilising support vector machines (SVMs) equipped with
 weighted linear combinations of numerous kernels can attain impressive
 test-accuracies of up to $72.8$\% \cite{Nilsback:2008}, where the optimum
 weights can be systematically learned \cite{Varma:2007}. Subsequently developed
 models based on \emph{Inception-v3}, trained with the 14-million-sample
-\emph{ImageNet} dataset, have achieved an impressive $94$\% test-accuracy on
-\emph{Flowers} \cite{Xia:2017}.
+\emph{ImageNet}, have achieved $94$\% test-accuracy on \emph{Flowers}
+\cite{Xia:2017}.
 
-As the capabilities of machine learning advance, and demand increases, the
-complexity of the datasets on which neural networks are expected to work will
-invariably rise, thus giving justification to the importance of research into
-the systematic learning of large-category datasets, often with restricted
-volumes of training samples.  The DNN presented henceforth uses a combination of
-convolutions, batch normalisation, the rectified linear activation function,
-cross-entropy-softmax loss, and learning-rate scheduling to attain a
-test-accuracy of $\networkperformance$\% with no pre-trained information.
+As the demand on ML increases, the complexity of the datasets on which DNNs are
+expected to work will invariably rise, thus giving justification to the
+importance of research into the systematic learning of large-category datasets,
+often with restricted volumes of training samples.  The DNN presented henceforth
+uses a combination of convolutions, batch normalisation, the rectified linear
+activation function, cross-entropy-softmax loss, and learning-rate scheduling to
+attain a test-accuracy of $\networkperformance$\% with no pre-trained
+information.
 
 \section{Method}
-The designed CDNN follows a typical convolutional process: given a batch of
-three-channel (RGB) images each representable as tensors over $\mathbb{Q}_+$,
-the CDNN passes the batch through a sequence of hidden layers:
+The designed CDNN follows a typical convolutional process: given a $16$-image
+batch of three-channel (RGB) images each representable as tensors over
+$\mathbb{Q}_+$, the CDNN passes the batch through a sequence of hidden layers:
 \begin{enumerate}
     \item Using a $3 \times 3$ kernel, perform two-dimensional convolution over
         the three-channel input to produce a 32-channel output. Iterate
@@ -99,14 +110,11 @@ the CDNN passes the batch through a sequence of hidden layers:
         \times 2$ kernel. \label{item:method-last-stage}
     \item Repeat stages \ref{item:method-first-stage} to
         \ref{item:method-last-stage} with increasing numbers of input-output
-        convolution channels: $32 \to 64$ and $64 \to 128$, to yield a
-        128-channel convolved tensor, which has been normalised, activated, and
-        pooled;
-    \item Linearise the feature map using a four-stage process to create a
-        102-component probability tensor for each image in the batch.
+        convolution channels: $32 \to 64$ and $64 \to 128$.
+    \item Collapse and recursively linearise the tensor to yield a
+        102-component probability tensor for each batch image.
 \end{enumerate}
-Each aspect of these hidden layers, and the cross-entropy-softmax loss function,
-is now explored in detail.
+Various aspects of the CDNN are now explored further.
 
 \subsection{Two-Dimensional Convolution}
 On a single $C_\text{in}$-channel image of dimensions
@@ -140,12 +148,26 @@ and based on the relevant literature \cite{Wang:2016}.
 BN, typically performed on the convolved tensor, causes faster convergence of
 the CDNN\footnotemark. Normalisation as a pre-processing technique is known to
 substantially improve the performance of a DNN, and BN extends the processing to
-each hidden layer of the network. Equation \eqref{eqn:batch-norm} represents the
+each hidden layer of the network.
+%
+\footnotetext{The usefulness of BN was originally thought to be explained by its
+supposed tenancy to reduce the DNN's \emph{internal covariate shift} (ICS)
+\cite{Ioffe:2015}. In a groundbreaking 2019 study, it was shown that BN improves
+the \emph{$\beta$-Lipschitzness} of the derivative of the cost function, hence
+smoothening the cost function, enabling larger learning rates during gradient
+descent \cite{Santurkar:2019}.}
+%
+\eqref{eqn:batch-norm} represents the
 transformation of the convoluted batch-tensor $\mathcal{B}$, where
 $\mu_\mathcal{B}$ and $\sigma_\mathcal{B}$ denote the mean and standard
-deviation of $\mathbb{Q}$-components of $\mathcal{B}$ respectively; $\gamma$ and
-$\beta$ represent shift parameters of the standard deviation and mean
-respectively \cite{Laarhoven:2017}.
+deviation of $\mathbb{Q}$-components of $\mathcal{B}$
+respectively\footnotemark.
+%
+\footnotetext{The $\gamma$ and $\beta$ shift parameters can be learned to offset
+any misrepresentation as a result of the linear transformation. This is
+especially useful when $\batchnorm$ is composed with the activation function;
+see \cite{Laarhoven:2017}.}
+%
 \begin{equation}
     \batchnorm(\mathcal{B}) = \frac{%
         \gamma\left(\mathcal{B}-\mu_\mathcal{B}\right)}
@@ -153,30 +175,49 @@ respectively \cite{Laarhoven:2017}.
 \end{equation}
 Given the known regularising properties of BN \cite{Luo:2019}, no further
 techniques were employed to discourage over-fitting.
-\footnotetext{The usefulness of BN was originally thought to be explained by its
-supposed tenancy to reduce the DNN's \emph{internal covariate shift} (ICS)
-\cite{Ioffe:2015}. In a groundbreaking 2019 study, it was shown that BN improves
-the \emph{$\beta$-Lipschitzness} of the derivative of the cost function, hence
-smoothening the cost function, enabling larger learning rates during gradient
-descent \cite{Santurkar:2019}.}
 
 \subsection{Activation with the Rectified Linear Unit}
+The rectified linear unit (ReLU) activator is the function $\relu \colon
+\mathbb{R} \to \{0, x\}$ such that $ x \mapsto \max(0, x)$ for all $x \in
+\mathbb{R}$ \cite{Hahnloser:2000}, which is known to improve the learning of
+DNNs due to its thresholding properties \cite{Agarap:2019}.
+
 \subsection{Max-Pooling}
+Pooling, in its most general form, uses a \emph{pooling operator} to reduce
+information in fixed regions to an aggregate value \cite{Sun:2017}, hence
+lowering the complexity and number of features with which the DNN is expected to
+work. In tasks relating to computer vision, it is typical to employ
+\emph{max-pooling}, whereby the pooling operator aggregates a region by
+selecting its maximal value \cite{Nagi:2011}. A $2 \times 2$ region was
+empirically chosen.
+
 \subsection{Linearisation}
+Linearisation, denoted by $\linear(\mathcal{A})$, applies a linear transform
+using the learned parameters to the given tensor $\mathcal{A}$. The four-stage
+linearisation process, each consisting of the `activated composition' $\relu
+\circ \linear$, reduce the large number of collapsed features into the
+102-probability vector for each batch image.
+
 \subsection{Cross-Entropy Loss with Softmax}
+The cross-entropy loss composed with softmax, henceforth denoted $\loss$, was
+selected as the suitable objective-loss function given its established
+performance in classification-based computer vision tasks. The machine
+learning-relevant mapping is given by \eqref{eqn:loss} using the notation in
+\cite{Jie:2018}.
+\begin{equation}
+    \loss(x, y) = \sum_{i=1}^m \log\frac%
+        {\exp\left(w^T_{y_i} x_i + b_{y_i}\right)}%
+        {\sum_{j=1}^n \exp\left(w^T_j x_i + b_j\right)}%
+    \label{eqn:loss}
+\end{equation}
+The $\loss$ was also used to inform a \emph{learning rate scheduler}, such that
+the learning rate of the stochastic gradient descent would reduce by a factor of
+$1/5$ in the event of a non-decreasing loss over multiple epochs
+\cite{Konar:2020}.
 
 \section{Network Architecture}
 Figure \ref{fig:network-architecture} is a diagrammatic representation of the
-CDNN architecture.
-\begin{figure*}[t]
-    \input{network.tikz.tex}%
-    \caption{The network architecture of the CDNN, where the top row indicates
-    the function of the current layer, and the bottom row indicates the shape of
-    the tensor \emph{following} the transformation. With a batch size of $16$, a
-    four-way batch tensor of RGB $224 \times 224$ images is translated to a set
-    of probability vectors for each image, over each of the 102 categories.}
-    \label{fig:network-architecture}
-\end{figure*}
+CDNN.
 
 \section{Results and Evaluation (TODO)}
 \section{Conclusion and Further Work (TODO)}
