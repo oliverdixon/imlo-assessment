@@ -186,17 +186,6 @@ class _ModelDriver:
         print(f"\tEntire network accuracy: {self._validate_on_data(self._test_data):.2f} %.\n"
               f"Finished testing.")
 
-    def graph_network(self) -> None:
-        """
-        Produce a vectorised PDF graph of the neural network layers and store in the FIGURES_DIRECTORY. In addition to
-        TorchViz, this operation requires the GraphViz Python library and system program (verify with 'dot -V').
-        """
-        from torchviz import make_dot
-
-        make_dot(self._model(next(iter(self._training_data))[0].to(torch.get_default_device())),
-                 params=dict(list(self._model.named_parameters()))) \
-            .render(_ModelDriver._FIGURES_DIRECTORY + "/network_graph", format="pdf", cleanup=True)
-
     def __init__(self, model: torch.nn.Module) -> None:
         """
         Initialise the model driver: prepare data in its train-test-validation split, and configure hyperparameters and
@@ -253,8 +242,5 @@ if __name__ == "__main__":
     torch.set_default_device(identify_optimal_device())
     driver = _ModelDriver(FlowersModel())
 
-    if graph:
-        driver.graph_network()
-    else:
-        driver.train_model(100)
-        driver.evaluate_model()
+    driver.train_model(100)
+    driver.evaluate_model()
