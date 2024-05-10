@@ -12,10 +12,9 @@
 ]{hyperref}
 
 \usetikzlibrary{positioning, fit}
-\pgfplotsset{compat=1.18, compat/show suggested version=false}
+\pgfplotsset{compat=1.18}
 
 \newcommand\dotsep{\enspace\textperiodcentered\enspace}
-\newcommand\networkperformance{43}
 \DeclareMathOperator\relu{\mathsf{ReLU}}
 \DeclareMathOperator\batchnorm{\mathsf{BNorm}}
 \DeclareMathOperator\linear{\mathsf{Lin}}
@@ -24,6 +23,10 @@
 \DeclareMathOperator\weight{\mathsf{Weight}}
 \DeclareMathOperator\maxpool{\mathsf{MaxPool2d}}
 \DeclareMathOperator\bias{\mathsf{Bias}}
+
+\newcommand\networkperformance{43}
+\newcommand\trainingtime{\textbf{TODO}}
+\newcommand\trainingepochcount{\textbf{TODO}}
 
 \newcommand\candidate{Examination Candidate \#Y3898772}
 \title{Classification of the 102-Category \emph{Flowers} Dataset with
@@ -43,7 +46,7 @@
 \maketitle
 \begin{figure*}[t]
     % This figure must be defined on the page preceding its intended ship-out.
-    \input{network.tikz.tex}%
+    \input{extra/network.tikz.tex}%
     \caption{The network architecture of the CDNN, where the top row indicates
     the function of the current layer, and the bottom row indicates the shape of
     the tensor \emph{following} the transformation. With a batch size of $16$, a
@@ -222,15 +225,16 @@ considering the skewed split sizes of \emph{Flowers}.
 A single \emph{NVIDIA GeForce GTX 1080 Ti} GPU was used in conjunction with an
 \emph{Intel Xeon Silver 4114} CPU @ $2.20$GHz\footnote{This hardware is
 accessible via SSH at \texttt{csgpu2.cs.york.ac.uk}.}. Training occurred over
-\textbf{TODO} minutes and iterated over \textbf{TODO} epochs, until the
-early-stopping mechanism identified over-fitting. Figure \ref{fig:loss-plot}
-displays the losses over epochs, where each epoch performed a self-test with the
-entire validation set.  The eventual on the test data (executed after a full
-training cycle) was $\networkperformance$\%.
+\trainingtime\ minutes and iterated over \trainingepochcount\ epochs, while the
+early-stopping mechanism intended to detect over-fitting was disabled. Figure
+\ref{fig:loss-plot} displays the losses over epochs, where each epoch performed
+a self-test with the entire validation set.  The eventual accuracy on the test
+data (evaluated after a full \trainingepochcount{}-epoch training cycle) was
+$\networkperformance$\%.
 
 \begin{figure}
-    \input{loss-plot.tikz.tex}%
-    \caption{The accuracy of training data and validation data over training
+    \input{extra/loss-plot.tikz.tex}%
+    \caption{The losses on training data and validation data over training
         epochs}%
     \label{fig:loss-plot}
 \end{figure}
@@ -244,7 +248,7 @@ differing DNN architecture. Within the space of convolutional DNNs, the
 architecture described by Figure \ref{fig:network-architecture} is supported by
 sensible design principles, although additional work should be undertaken to
 determine the potential utility of adding hidden layers, or employing more
-intricate LR schedulers \cite{Loshchilov:2017}.
+sophisticated LR schedulers \cite{Loshchilov:2017}.
 
 \bibliographystyle{IEEEtran}
 \bibliography{bibliography}
@@ -254,7 +258,7 @@ intricate LR schedulers \cite{Loshchilov:2017}.
     \begin{tabular}{c}
         \emph{Manuscript prepared with} \\[8pt]
         \huge\LaTeX \\[8pt]
-        \emph{and} \\[8pt]
+        \huge Ti\textit{k}Z\\[8pt]
         \huge\texttt{IEEEtran}
     \end{tabular}
 \end{center}
