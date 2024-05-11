@@ -215,13 +215,15 @@ class _ModelDriver:
         Evaluate the entire model against the set of training data and output the results
         """
         print("Testing...")
-        start_time = datetime.now()
 
         self._model.load_state_dict(torch.load(_ModelDriver._SAVE_PATH, map_location=torch.get_default_device()))
         print(f"\tLoaded model from '{_ModelDriver._SAVE_PATH}'")
 
+        start_time = datetime.now()
+        accuracy = self._validate_on_data(self._test_data)[0]
+
         print(f"\tTesting time: {datetime.now() - start_time}\n"
-              f"\tEntire network accuracy: {self._validate_on_data(self._test_data)[0]:.2f} %\n"
+              f"\tEntire network accuracy: {accuracy:.2f} %\n"
               f"\tFinished testing.")
 
     def __init__(self, model: torch.nn.Module) -> None:
@@ -278,3 +280,4 @@ if __name__ == "__main__":
 
     driver.train_model(200)
     driver.evaluate_model()
+

@@ -46,7 +46,7 @@
 \maketitle
 \begin{figure*}[t]
     % This figure must be defined on the page preceding its intended ship-out.
-    \input{extra/network.tikz.tex}%
+    \input{network.tikz.tex}%
     \caption{The network architecture of the CDNN, where the top row indicates
     the function of the current layer, and the bottom row indicates the shape of
     the tensor \emph{following} the transformation. With a batch size of $16$, a
@@ -141,13 +141,13 @@ H_\text{in}, W_\text{in} \right)}_+$ containing channels $\mathcal{A}_1, \ldots,
 \end{equation}
 (The convolutional cross-correlation operator is denoted by $\star$, and
 $\weight$ and $\bias$ select the suitable channel-wise weight and global bias
-respectively.) All $C_\text{out}$ two-dimensional components of the codomain
-of $\convol$, $\mathbb{Q}^{\left( C_\text{out}, H_\text{out}, W_\text{out}
-\right)}_+$, are a \emph{feature maps} of the convolution.
-Convolution is an important stage of the feature-extraction process, whereby
-unimportant features are abstracted away from the attention of the learnable
-parameters of the CDNN. Kernel sizes of $3 \times 3$ were selected empirically,
-and based on the relevant literature \cite{Wang:2016}.
+respectively.) All $C_\text{out}$ two-dimensional components of the codomain of
+$\convol$, $\mathbb{Q}^{\left( C_\text{out}, H_\text{out}, W_\text{out}
+\right)}_+$, are \emph{feature maps} of the convolution.  Convolution is an
+important stage of the feature-extraction process, whereby unimportant features
+are abstracted away from the attention of the learnable parameters of the CDNN.
+Kernel sizes of $3 \times 3$ were selected empirically, and based on the
+relevant literature \cite{Wang:2016}.
 
 \subsection{Batch Normalisation (BN)}
 BN, typically performed on the convolved tensor, causes faster convergence of
@@ -223,7 +223,7 @@ of SGD \cite{Hardt:2016}, which is a property of particular importance
 considering the skewed split sizes of \emph{Flowers}.
 
 A single \emph{NVIDIA A40} GPU was used in conjunction with an \emph{AMD EPYC
-7742} 64-core CPU @ $2.20$GHz\footnote{This hardware is accessible via SSH at
+7742} 64-core CPU\footnote{This hardware is accessible via SSH at
 \texttt{csgpu13.cs.york.ac.uk}.}. Training occurred over \trainingtime\ minutes
 and iterated over \trainingepochcount\ epochs. Figure \ref{fig:loss-plot}
 displays the losses over epochs, where each epoch performed a self-test with the
@@ -233,7 +233,7 @@ after a full \trainingepochcount{}-epoch training cycle) was
 $\networkperformance$\%.
 
 \begin{figure}
-    \input{extra/loss-plot.tikz.tex}%
+    \input{loss-plot.tikz.tex}%
     \caption{The losses on training data and validation data over training
         epochs}%
     \label{fig:loss-plot}
