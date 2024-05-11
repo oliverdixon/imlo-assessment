@@ -3,6 +3,7 @@ from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
 from typing import Final
+from datetime import datetime
 
 from FlowersModel import FlowersModel
 
@@ -12,8 +13,8 @@ class _ModelDriver:
     Drives a PyTorch module/model by supporting a training and testing framework
     """
     _BATCH_SIZE: Final[int] = 16
-    _SAVE_PATH = "data/flowers-net.pth"
-    _FIGURES_DIRECTORY = "figures/"
+    _SAVE_PATH: Final[str] = "data/flowers-net.pt"
+    _LOSSES_PATH: Final[str] = "data/losses-series.txt"
 
     _DATASET_TEMPLATES: Final[dict[str, transforms.Compose]] = {
         "train": transforms.Compose([
@@ -73,22 +74,26 @@ class _ModelDriver:
             generator=torch.Generator(torch.get_default_device())
         )
 
-    @staticmethod
-    def _report_epoch_summary(training_accuracy: float, validation_accuracy: float, epoch_loss: float,
-                              learning_rates: tuple[float, float]) -> None:
+    def _report_epoch_summary(self, training: tuple[float, float], validation: tuple[float, float],
+                              learning_rates: tuple[float, float], start_time: datetime,
+                              epoch_idx: int) -> None:
         """
         Reports the post-training epoch performance summary
 
-        :param training_accuracy: The percentage accuracy of the training tests, over the entire epoch
-        :param validation_accuracy: The percentage accuracy of the validation tests
-        :param epoch_loss: The total loss values accumulated during the epoch
+        :param training: The percentage accuracy of the training tests, followed by the accumulated training loss
+        :param validation: The percentage accuracy of the validation tests, followed by the accumulated validation loss
         :param learning_rates: The closing LR of the current epoch followed by the closing LR of the previous epoch
+        :param start_time: The time at which training (over all epochs) was initiated
+        :param epoch_idx: The index of the epoch just trained
         """
-        print(f"\t\tTraining data accumulated accuracy: {training_accuracy:.2f} %\n"
-              f"\t\tValidation data accuracy: {validation_accuracy:.2f} %\n"
+        print(f"\t\tTime since training start: {datetime.now() - start_time}\n"
+              f"\t\tTraining data accumulated accuracy: {training[0]:.2f} %\n"
+              f"\t\tValidation data accuracy: {validation[0]:.2f} %\n"
               f"\t\tClosing learning rate: {learning_rates[0]}"
               f"{' (scheduled)' if learning_rates[0] != learning_rates[1] else ''}\n"
-              f"\t\tAccumulated training loss: {epoch_loss}")
+              f"\t\tAccumulated training loss: {training[1]}\n"
+              f"\t\tAccumulated validation loss: {validation[1]}\n"
+              f"\t\tCheckpoint? {'Yes' if self._checkpoint[0] == epoch_idx else 'No'}")
 
     @staticmethod
     def _count_correct_predictions(probabilities: torch.Tensor, truths: torch.Tensor) -> int:
@@ -113,26 +118,43 @@ class _ModelDriver:
         inputs = batch_data[0].to(torch.get_default_device())
         return self._model(inputs).to(torch.get_default_device()), batch_data[1].to(torch.get_default_device())
 
-    def _validate_on_data(self, reference_data: DataLoader) -> float:
+    def _validate_on_data(self, reference_data: DataLoader) -> tuple[float, float]:
         """
         Evaluate the model over the entire given dataset
 
         :param reference_data: The data split on which the model should be tested
-        :return: The percentage accuracy of the model
+        :return: The percentage accuracy of the model and the total cumulative loss
         """
         self._model.eval()
 
         correct = 0
         total = 0
+        loss = 0.0
 
         with torch.no_grad():
             data: list[torch.Tensor]
             for data in reference_data:
                 outputs, labels = self._evaluate_batch(data)
+                loss += self._loss(outputs, labels).item()
                 correct += self._count_correct_predictions(outputs, labels)
                 total += labels.size(0)
 
-        return correct / total * 100
+        return correct / total * 100, loss
+
+    def _checkpoint_shipout(self, epoch_idx: int, metric_value: float) -> None:
+        """
+        If appropriate, write the current state of the model to the persistent location. This should normally be done if
+        a metric (e.g. the loss) has increased. Updated models are only written once a fixed number of epochs have run
+        (this is to avoid excessive FS usage on continually increasing early-epoch training sessions, given the large
+        size of model state dictionaries).
+
+        :param epoch_idx: The index of the epoch just passed
+        :param metric_value: The value of the arbitrary metric at the current epoch
+        """
+        if (metric_value > self._checkpoint[1] and epoch_idx >= self._checkpoint_threshold) or \
+                self._checkpoint_threshold == epoch_idx:
+            self._checkpoint = (epoch_idx, metric_value)
+            torch.save(self._model.state_dict(), _ModelDriver._SAVE_PATH)
 
     def train_model(self, epoch_count: int) -> None:
         """
@@ -142,7 +164,12 @@ class _ModelDriver:
         :param epoch_count: The number of epochs for which the model should be trained
         """
         print("Training...")
+
         last_lr: float
+        start_time = datetime.now()
+        training_losses_series: list[tuple[int, float]] = []
+        validation_losses_series: list[tuple[int, float]] = []
+        self._checkpoint_threshold = epoch_count // 3
 
         for epoch_idx in range(epoch_count):
             correct = 0
@@ -167,24 +194,35 @@ class _ModelDriver:
 
             last_lr = self._scheduler.get_last_lr()[0]
             self._scheduler.step(epoch_loss)
-            self._report_epoch_summary(correct / total * 100, self._validate_on_data(self._validation_data), epoch_loss,
-                                       (self._scheduler.get_last_lr()[0], last_lr))
+            validation_stats = self._validate_on_data(self._validation_data)
 
-        self._trained = True
-        torch.save(self._model.state_dict(), _ModelDriver._SAVE_PATH)
-        print(f"Finished training over {epoch_count} epochs: see '{_ModelDriver._SAVE_PATH}'.")
+            self._checkpoint_shipout(epoch_idx, validation_stats[0])
+            self._report_epoch_summary((correct / total * 100, epoch_loss), validation_stats,
+                                       (self._scheduler.get_last_lr()[0], last_lr), start_time, epoch_idx)
+
+            training_losses_series.append((epoch_idx, epoch_loss))
+            validation_losses_series.append((epoch_idx, validation_stats[1]))
+
+        with open(_ModelDriver._LOSSES_PATH, "w") as losses_file:
+            losses_file.write(str(training_losses_series) + "\n" + str(validation_losses_series))
+
+        print(f"\tFinished training over {epoch_count} epochs: see '{_ModelDriver._SAVE_PATH}'\n"
+              f"\tThe final checkpointed model was generated by epoch #{self._checkpoint[0]}\n"
+              f"\tEpoch-loss series points saved to '{_ModelDriver._LOSSES_PATH}'")
 
     def evaluate_model(self) -> None:
         """
         Evaluate the entire model against the set of training data and output the results
         """
         print("Testing...")
-        if not self._trained:
-            print("\tUntrained model; loading pre-trained model from " + _ModelDriver._SAVE_PATH)
-            self._model.load_state_dict(torch.load(_ModelDriver._SAVE_PATH, map_location=torch.get_default_device()))
+        start_time = datetime.now()
 
-        print(f"\tEntire network accuracy: {self._validate_on_data(self._test_data):.2f} %.\n"
-              f"Finished testing.")
+        self._model.load_state_dict(torch.load(_ModelDriver._SAVE_PATH, map_location=torch.get_default_device()))
+        print(f"\tLoaded model from '{_ModelDriver._SAVE_PATH}'")
+
+        print(f"\tTesting time: {datetime.now() - start_time}\n"
+              f"\tEntire network accuracy: {self._validate_on_data(self._test_data)[0]:.2f} %\n"
+              f"\tFinished testing.")
 
     def __init__(self, model: torch.nn.Module) -> None:
         """
@@ -193,8 +231,9 @@ class _ModelDriver:
 
         :param model: The model on which training, validation, and testing should be performed
         """
+        self._checkpoint_threshold = None
+        self._checkpoint: tuple[int, float] = (-1, 0)  # Checkpoint epoch and maximised accuracy metric
         self._model = model.to(torch.get_default_device())
-        self._trained = False
 
         self._training_data = self._download_data_split("train")
         self._validation_data = self._download_data_split("val")
@@ -204,7 +243,7 @@ class _ModelDriver:
 
         # The optimiser uses a very large initial learning rate and allows the scheduler to correct it over the epochs.
         self._optimiser = torch.optim.SGD(self._model.parameters(), lr=0.001, momentum=0.9)
-        self._scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self._optimiser, factor=0.2, patience=2)
+        self._scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self._optimiser, factor=0.2, patience=3)
 
 
 def identify_optimal_device() -> str:
@@ -219,28 +258,23 @@ def identify_optimal_device() -> str:
         return "cpu"
 
     name: str = "cuda:0"
-    min_usage: int = torch.cuda.utilization(name)
+    max_memory: int = torch.cuda.mem_get_info(name)[1]
 
     for i in range(1, torch.cuda.device_count()):
-        if min_usage == 0:
-            break
-
         candidate_name = "cuda:" + str(i)
-        candidate_usage = torch.cuda.utilization(candidate_name)
+        candidate_memory = torch.cuda.mem_get_info(candidate_name)[1]
 
-        if candidate_usage <= min_usage:
+        if candidate_memory >= max_memory:
             name = candidate_name
-            min_usage = candidate_usage
+            max_memory = candidate_memory
 
-    print(f"{torch.cuda.device_count()} CUDA GPUs are available; selecting \'{name}\' ({min_usage}% utilised).")
+    print(f"{torch.cuda.device_count()} CUDA GPUs are available; selecting \'{name}\' ({max_memory} bytes free).")
     return name
 
 
 if __name__ == "__main__":
-    graph = False
-
     torch.set_default_device(identify_optimal_device())
     driver = _ModelDriver(FlowersModel())
 
-    driver.train_model(100)
+    driver.train_model(200)
     driver.evaluate_model()
