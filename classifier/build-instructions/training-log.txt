@@ -1,0 +1,10 @@
+3 CUDA GPUs are available; selecting 'cuda:2' (47622258688 bytes free).
+Training...
+  Epoch 0 / 199
+    Time since training start: 0:00:29.244856
+    Training data accumulated accuracy: 1.47 %
+    Validation data accuracy: 4.41 %
+    Closing learning rate: 0.001
+    Accumulated training loss: 295.82687425613403
+    Accumulated validation loss: 294.55209827423096
+    Checkpoint? No

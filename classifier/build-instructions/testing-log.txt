@@ -1,0 +1,5 @@
+Testing...
+  Loaded model from `data/flowers-net.pt'
+  Testing time: 0:00:29.308905
+  Entire network accuracy: 41.05 %
+  Finished testing.

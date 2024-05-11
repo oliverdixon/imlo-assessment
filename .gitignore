@@ -1,3 +1,5 @@
+backup/
+
 # Classifier
 
 classifier/.*
@@ -8,14 +10,14 @@ classifier/figures
 
 # Standard TeX/latexmk temporary files
 
-report/*.aux
-report/*.bbl
-report/*.fls
-report/*.fdb_latexmk
-report/*.log
-report/*.blg
-report/*.out
+**/*.aux
+**/*.bbl
+**/*.fls
+**/*.fdb_latexmk
+**/*.log
+**/*.blg
+**/*.out
 
-report/*.pdf
-report/.*.sw*
+**/*.pdf
+**/.*.sw*
 

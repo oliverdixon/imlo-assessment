@@ -1,0 +1,59 @@
+% EXAM CANDIDATE #Y3898772
+% NETWORK BUILD INSTRUCTIONS
+%
+\documentclass{article}
+
+\usepackage[en-GB]{datetime2}
+\usepackage[a4paper]{geometry}
+\usepackage{fancyvrb, xcolor, hyperref}
+
+\newcommand\examnumber{Examination Candidate \#Y3898772}
+\title{CNN Build Instructions}
+\author{\examnumber}
+
+\colorlet{ttcol}{darkgray}
+\renewcommand\texttt[1]{\textcolor{ttcol}{\ttfamily#1}}
+\fvset{formatcom={\small\color{ttcol}}}
+
+\begin{document}
+\maketitle
+This document describes a suitable method of bootstrapping, building, and
+testing the \emph{Flowers} convolutional neural network, as submitted by
+\examnumber\ in partial fulfilment of the IMLO module assignment. The
+instructions given here assume a Linux shell on a CUDA-equipped machine, such as
+\texttt{csgpu13.cs.york.ac.uk}.
+\begin{enumerate}
+    \item \textbf{Building the Python virtual environment.}
+        \begin{enumerate}
+            \item Using the system Python interpreter, navigate to the
+                \texttt{classifier/} project folder and execute \texttt{python
+                -m venv .venv}. Activate the virtual environment with
+                \texttt{source .venv/bin/activate}.
+            \item Install all third-party library dependencies with \texttt{pip
+                install -r requirements.txt}. This will download and install (or
+                recover from the system cache) PyTorch with Torchvision for
+                tensor and neural network support, and SciPy for the parsing of
+                MATLAB files distributed with \emph{Flowers}.
+        \end{enumerate}
+    \item \textbf{Training and evaluating the model.}
+        Still with the virtual environment activated, execute \texttt{python
+        ModelDriver.py}; this will train the model for 200 epochs\footnotemark,
+        periodically checkpointing the best network parameters to
+        \texttt{data/flowers-net.pt}, and then evaluate the trained model.
+        %
+        \footnotetext{The number of training epochs $E$ can be modified through
+        the sole parameter to \texttt{\_ModelDriver.train\_model}, although in
+        the interests of avoiding excessive file-system transactions on
+        early-epoch (continually improving) models, parameters representing
+        maximally accurate networks will only be committed to persistent storage
+        after $\lfloor E/3 \rfloor$ epochs.}
+        %
+        The output of training over the first epoch will appear as follows:
+        \VerbatimInput{training-log.txt}
+
+        The model will then self-evaluate, having re-loaded the network
+        parameters of the iteration which incurred the maximal validation
+        accuracy: \VerbatimInput{testing-log.txt}
+\end{enumerate}
+\end{document}
+
